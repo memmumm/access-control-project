@@ -5,6 +5,7 @@ import uuid
 import boto3
 
 reader = SimpleMFRC522()
+sns = boto3.client('sns')
 
 def write_rfid_tag():
     try:
@@ -14,7 +15,7 @@ def write_rfid_tag():
         userid = reader.write(uuid.uuid4())
         print("Tag written")
 
-        return [firstname, lastname, userid]
+        return [userid, firstname, lastname]
 
     except:
         print("There was an error, please try running the script again")
@@ -23,8 +24,16 @@ def write_rfid_tag():
     finally:
         GPIO.cleanup()
 
-def send_user_info_to_db(userinfo):
-    pass
-    # tähän tulee funktio, joka lähettää syötetyn userinfon SNS-topikkiin
+def send_user_info_to_sns(userinfo):
 
-send_user_info_to_db(write_rfid_tag())
+    sns.publish(
+        TopicArn='write event topic arn',
+        Message={
+            "userId": userinfo[0],
+            "firstName": userinfo[1],
+            "lastName": userinfo[2]
+        },
+        Subject=f'Write event for {userinfo[0]}'
+    )
+
+send_user_info_to_sns(write_rfid_tag())
